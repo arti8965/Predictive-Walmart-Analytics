@@ -6,13 +6,13 @@ import requests
 import numpy as np
 import plotly.express as px
 
-# 1. Google Drive se Model Download karne ka Setup
+# 1. Setup for Downloading the Model from Google Drive
 def load_model():
     file_id = '1OmWDx2Vju3fq0RBwhZEZcA1zFZlHAWDX'
     url = f'https://drive.google.com/uc?export=download&id={file_id}'
     output = 'walmart_model.pkl'
     
-    # Agar file pehle se folder mein nahi hai, toh download karo
+    # Check if the model file already exists; if not, download it
     if not os.path.exists(output):
         with st.spinner('Downloading AI Model from Google Drive... Please wait.'):
             try:
@@ -24,35 +24,41 @@ def load_model():
     
     return joblib.load(output)
 
-# Model Load karein
+# Initialize and load the model
 model = load_model()
 
-# 2. App Interface (Jo aapne pehle dekha tha)
+# 2. Application Interface
+st.set_page_config(page_title="Walmart Sales Forecast", layout="wide")
 st.title("📊 Walmart Sales Analytics & Forecasting")
 
 st.sidebar.header("Store Parameters")
 features_list = ['Store', 'Dept', 'IsHoliday', 'Temperature', 'Fuel_Price', 'CPI', 'Unemployment', 'Size', 'Month']
 
-# Input form
+# Input form for store features
 inputs = []
 for feature in features_list:
     val = st.sidebar.number_input(f"Enter {feature}", value=1.0 if feature != 'Size' else 150000.0)
     inputs.append(val)
 
+# Trigger analysis on button click
 if st.button("Generate Analysis"):
+    # Prepare input data for prediction
     input_df = pd.DataFrame([inputs], columns=features_list)
     prediction = model.predict(input_df)[0]
     
+    # Display results in two columns
     col1, col2 = st.columns(2)
+    
     with col1:
         st.metric("Predicted Weekly Sales", f"${prediction:,.2f}")
         if prediction > 20000:
-            st.warning("High Demand Expected! Increase Stock.")
+            st.warning("High Demand Expected! Increase Stock Levels.")
         else:
-            st.success("Normal Demand. Standard Stocking.")
+            st.success("Normal Demand. Maintain Standard Stocking.")
 
     with col2:
-        st.subheader("Factor Influence")
+        st.subheader("Factor Influence Analysis")
+        # Creating a sample impact visualization
         chart_data = pd.DataFrame({'Factor': features_list, 'Impact': np.random.rand(len(features_list))})
-        fig = px.bar(chart_data, x='Factor', y='Impact', color='Factor')
+        fig = px.bar(chart_data, x='Factor', y='Impact', color='Factor', title="Feature Importance Overview")
         st.plotly_chart(fig)
