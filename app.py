@@ -1,64 +1,28 @@
-import streamlit as st
-import pandas as pd
-import joblib
-import os
-import requests
-import numpy as np
-import plotly.express as px
-
-# 1. Setup for Downloading the Model from Google Drive
 def load_model():
+    # Direct download link for large files
     file_id = '1OmWDx2Vju3fq0RBwhZEZcA1zFZlHAWDX'
-    url = f'https://drive.google.com/uc?export=download&id={file_id}'
+    url = f'https://drive.google.com/uc?export=download&id={file_id}&confirm=t'
     output = 'walmart_model.pkl'
     
-    # Check if the model file already exists; if not, download it
     if not os.path.exists(output):
-        with st.spinner('Downloading AI Model from Google Drive... Please wait.'):
+        with st.spinner('Downloading AI Model... Please wait.'):
             try:
-                response = requests.get(url)
+                # Using a session to handle the "large file" warning from Google
+                session = requests.Session()
+                response = session.get(url, stream=True)
                 with open(output, 'wb') as f:
-                    f.write(response.content)
+                    for chunk in response.iter_content(chunk_size=32768):
+                        if chunk:
+                            f.write(chunk)
             except Exception as e:
                 st.error(f"Download failed: {e}")
     
-    return joblib.load(output)
-
-# Initialize and load the model
-model = load_model()
-
-# 2. Application Interface
-st.set_page_config(page_title="Walmart Sales Forecast", layout="wide")
-st.title("📊 Walmart Sales Analytics & Forecasting")
-
-st.sidebar.header("Store Parameters")
-features_list = ['Store', 'Dept', 'IsHoliday', 'Temperature', 'Fuel_Price', 'CPI', 'Unemployment', 'Size', 'Month']
-
-# Input form for store features
-inputs = []
-for feature in features_list:
-    val = st.sidebar.number_input(f"Enter {feature}", value=1.0 if feature != 'Size' else 150000.0)
-    inputs.append(val)
-
-# Trigger analysis on button click
-if st.button("Generate Analysis"):
-    # Prepare input data for prediction
-    input_df = pd.DataFrame([inputs], columns=features_list)
-    prediction = model.predict(input_df)[0]
-    
-    # Display results in two columns
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.metric("Predicted Weekly Sales", f"${prediction:,.2f}")
-        if prediction > 20000:
-            st.warning("High Demand Expected! Increase Stock Levels.")
-        else:
-            st.success("Normal Demand. Maintain Standard Stocking.")
-
-    with col2:
-        st.subheader("Factor Influence Analysis")
-        # Creating a sample impact visualization
-        chart_data = pd.DataFrame({'Factor': features_list, 'Impact': np.random.rand(len(features_list))})
-        fig = px.bar(chart_data, x='Factor', y='Impact', color='Factor', title="Feature Importance Overview")
-        st.plotly_chart(fig)
+    # Load the model
+    try:
+        return joblib.load(output)
+    except Exception:
+        # If loading fails, it means the file is bad. Delete it to retry.
+        if os.path.exists(output):
+            os.remove(output)
+        st.error("Model loading failed. Re-trying download... Please refresh the page.")
+        st.stop()
