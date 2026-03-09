@@ -70,3 +70,4 @@ if model:
         # Simple Visualization
         fig = px.bar(x=['Predicted Sales'], y=[prediction[0]], labels={'x': '', 'y': 'Sales in USD'})
         st.plotly_chart(fig)
+
