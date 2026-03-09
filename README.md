@@ -3,7 +3,7 @@
 An interactive Machine Learning dashboard designed to predict weekly sales for Walmart stores. This application provides real-time insights based on various economic and environmental factors like CPI, Fuel Price, and Unemployment.
 
 ## 🚀 Live Project Link
-[👉 Click here to view the Live App](https://smart-store-analytics-pro.streamlit.app) 
+[👉 Click here to view the Live App](https://predictive-walmart-analytics-6vdtxukpcmederjm76f8cv.streamlit.app/) 
 *(Note: Replace this with your actual URL once deployed)*
 
 ## 📝 Project Overview
