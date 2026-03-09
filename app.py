@@ -5,21 +5,34 @@ import os
 import requests
 import plotly.express as px
 
-# Page config
+# SSL errors ko ignore karne ke liye settings
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 st.set_page_config(page_title="Walmart Sales Predictor", layout="wide")
 
 def load_model():
-    # Google Drive Direct Link
+    # Direct Google Drive link logic
     file_id = '1OmWDx2Vju3fq0RBwhZEZcA1zFZlHAWDX'
     url = f'https://drive.google.com/uc?export=download&id={file_id}'
     output = 'walmart_model.pkl'
     
+    # Agar purani file choti hai (<1MB), toh wo kharab hai, use delete karo
+    if os.path.exists(output) and os.path.getsize(output) < 1000000:
+        os.remove(output)
+
     if not os.path.exists(output):
-        with st.spinner('Downloading Model from Google Drive... Please wait.'):
-            # verify=False is key to fixing Error 60
-            response = requests.get(url, verify=False) 
-            with open(output, 'wb') as f:
-                f.write(response.content)
+        with st.spinner('Downloading Model (Approx 50MB)... Please wait 1-2 minutes.'):
+            try:
+                # verify=False is the solution for Error 60
+                response = requests.get(url, verify=False, stream=True)
+                with open(output, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            except Exception as e:
+                st.error(f"Download failed: {e}")
+                st.stop()
     
     return joblib.load(output)
 
@@ -44,8 +57,8 @@ try:
         st.plotly_chart(px.bar(x=['Sales'], y=[prediction[0]]))
 
 except Exception as e:
-    st.error(f"Waiting for model... {e}")
-    if st.button("Retry Download"):
+    st.warning("Model loading in progress or setup incomplete.")
+    if st.button("Force Reset & Redownload"):
         if os.path.exists('walmart_model.pkl'):
             os.remove('walmart_model.pkl')
         st.rerun()
