@@ -12,15 +12,18 @@ st.set_page_config(page_title="Walmart Sales Predictor", layout="wide")
 def load_model():
     # Your Google Drive File ID
     file_id = '1OmWDx2Vju3fq0RBwhZEZcA1zFZlHAWDX'
-    # URL designed to bypass the "large file" warning
+    
+    # Direct link that bypasses Google's large file warning
     url = f'https://drive.google.com/uc?export=download&id={file_id}&confirm=t'
     output = 'walmart_model.pkl'
     
-    # Download file if it doesn't exist or is too small (corrupt)
-    if not os.path.exists(output) or os.path.getsize(output) < 1000:
-        with st.spinner('Downloading ML Model from Google Drive... Please wait.'):
+    # If file doesn't exist or is too small (meaning it's a corrupt HTML file), download it
+    if not os.path.exists(output) or os.path.getsize(output) < 5000:
+        with st.spinner('Downloading ML Model from Google Drive... This may take a moment.'):
             try:
-                response = requests.get(url, stream=True)
+                # Using a session to handle potential cookies/redirects
+                session = requests.Session()
+                response = session.get(url, stream=True)
                 with open(output, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=32768):
                         if chunk:
@@ -29,20 +32,20 @@ def load_model():
                 st.error(f"Download failed: {e}")
                 st.stop()
     
-    # Load the model using joblib
+    # Try to load the model
     try:
         model = joblib.load(output)
         return model
     except Exception as e:
-        # If loading fails, delete the file and ask for a reboot
+        # If loading still fails, delete the file and show a manual fix
         if os.path.exists(output):
             os.remove(output)
-        st.error("Model file is corrupt or incompatible. Please 'Reboot' the app from the Manage App menu.")
+        st.error("Error: The downloaded model file is incompatible. Please Reboot the app from the Manage App menu.")
         st.stop()
 
 # Initialize App
 st.title("📊 Walmart Sales Forecasting Dashboard")
-st.markdown("This application predicts weekly sales based on store data and economic indicators.")
+st.markdown("Predicting weekly sales based on store data and economic indicators.")
 
 # Load the model
 model = load_model()
@@ -70,4 +73,3 @@ if model:
         # Simple Visualization
         fig = px.bar(x=['Predicted Sales'], y=[prediction[0]], labels={'x': '', 'y': 'Sales in USD'})
         st.plotly_chart(fig)
-
