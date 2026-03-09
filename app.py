@@ -5,36 +5,21 @@ import os
 import requests
 import plotly.express as px
 
+# Page config
 st.set_page_config(page_title="Walmart Sales Predictor", layout="wide")
 
 def load_model():
-    # Your verified Google Drive File ID
+    # Google Drive Direct Link
     file_id = '1OmWDx2Vju3fq0RBwhZEZcA1zFZlHAWDX'
+    url = f'https://drive.google.com/uc?export=download&id={file_id}'
     output = 'walmart_model.pkl'
     
-    # If the file exists but is too small, it's corrupt, so we delete it
-    if os.path.exists(output) and os.path.getsize(output) < 100000:
-        os.remove(output)
-
     if not os.path.exists(output):
-        with st.spinner('Downloading ML Model (Large File)... Please wait.'):
-            # Special logic for Google Drive Large Files
-            session = requests.Session()
-            download_url = "https://docs.google.com/uc?export=download"
-            response = session.get(download_url, params={'id': file_id}, stream=True)
-            
-            token = None
-            for key, value in response.cookies.items():
-                if key.startswith('download_warning'):
-                    token = value
-                    break
-            
-            if token:
-                response = session.get(download_url, params={'id': file_id, 'confirm': token}, stream=True)
-            
-            with open(output, "wb") as f:
-                for chunk in response.iter_content(32768):
-                    if chunk: f.write(chunk)
+        with st.spinner('Downloading Model from Google Drive... Please wait.'):
+            # verify=False is key to fixing Error 60
+            response = requests.get(url, verify=False) 
+            with open(output, 'wb') as f:
+                f.write(response.content)
     
     return joblib.load(output)
 
@@ -57,11 +42,10 @@ try:
         prediction = model.predict(input_df)
         st.success(f"### Predicted Sales: ${prediction[0]:,.2f}")
         st.plotly_chart(px.bar(x=['Sales'], y=[prediction[0]]))
-        
+
 except Exception as e:
-    st.error(f"Error: {e}")
-    # This button helps you clear the bad file if it fails
-    if st.button("Clear Cache & Retry"):
+    st.error(f"Waiting for model... {e}")
+    if st.button("Retry Download"):
         if os.path.exists('walmart_model.pkl'):
             os.remove('walmart_model.pkl')
         st.rerun()
