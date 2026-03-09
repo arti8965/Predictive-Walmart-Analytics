@@ -2,5 +2,5 @@ streamlit
 pandas
 joblib
 requests
-numpy
+scikit-learn
 plotly
