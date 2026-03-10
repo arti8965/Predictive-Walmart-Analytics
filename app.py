@@ -5,35 +5,19 @@ import os
 import requests
 import plotly.express as px
 
-# SSL errors ko ignore karne ke liye settings
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-st.set_page_config(page_title="Walmart Sales Predictor", layout="wide")
-
 def load_model():
-    # Direct Google Drive link logic
-    file_id = '1OmWDx2Vju3fq0RBwhZEZcA1zFZlHAWDX'
-    url = f'https://drive.google.com/uc?export=download&id={file_id}'
+    # JO LINK COPY KIYA HAI WO YAHAN " " KE BEECH PASTE KAREIN
+    url = "YAHAN_APNA_RELEASE_LINK_PASTE_KAREIN" 
     output = 'walmart_model.pkl'
     
-    # Agar purani file choti hai (<1MB), toh wo kharab hai, use delete karo
-    if os.path.exists(output) and os.path.getsize(output) < 1000000:
-        os.remove(output)
-
     if not os.path.exists(output):
-        with st.spinner('Downloading Model (Approx 50MB)... Please wait 1-2 minutes.'):
-            try:
-                # verify=False is the solution for Error 60
-                response = requests.get(url, verify=False, stream=True)
-                with open(output, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-            except Exception as e:
-                st.error(f"Download failed: {e}")
-                st.stop()
-    
+        with st.spinner('Downloading Model (583MB)... This will take 2-4 minutes.'):
+            # GitHub Release se download fast hota hai
+            r = requests.get(url, stream=True) 
+            with open(output, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
     return joblib.load(output)
 
 st.title("📊 Walmart Sales Forecasting Dashboard")
@@ -57,8 +41,4 @@ try:
         st.plotly_chart(px.bar(x=['Sales'], y=[prediction[0]]))
 
 except Exception as e:
-    st.warning("Model loading in progress or setup incomplete.")
-    if st.button("Force Reset & Redownload"):
-        if os.path.exists('walmart_model.pkl'):
-            os.remove('walmart_model.pkl')
-        st.rerun()
+    st.error(f"Error: {e}")
